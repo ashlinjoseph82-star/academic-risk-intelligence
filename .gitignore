@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.pyc
+.venv
+venv/
+
+# Databases
+*.db
+*.sqlite
+
+# Model artifacts
+*.pkl
+*.joblib
+
+# Environment & editors
+.env
+.vscode/
+
+# Streamlit
+.streamlit/
+dashboard/.streamlit/
+
+# Node
+node_modules/
+
+# OS
+Thumbs.db
+.DS_Store
+
+package-lock.json
