@@ -1,30 +1,55 @@
+# =========================
 # Python
+# =========================
 __pycache__/
-*.pyc
-.venv
+*.py[cod]
+*.pyo
+*.pyd
+.venv/
 venv/
+env/
 
+# =========================
+# Virtual Environments
+# =========================
+.env
+.env.*
+
+# =========================
 # Databases
+# =========================
 *.db
 *.sqlite
+*.sqlite3
 
-# Model artifacts
+# =========================
+# Model Artifacts
+# =========================
 *.pkl
 *.joblib
+models/
 
-# Environment & editors
-.env
+# =========================
+# FastAPI / Backend
+# =========================
+*.log
+
+# =========================
+# VS Code / Editors
+# =========================
 .vscode/
+.idea/
 
-# Streamlit
-.streamlit/
-dashboard/.streamlit/
-
-# Node
+# =========================
+# Frontend / Node
+# =========================
 node_modules/
+dist/
+build/
+package-lock.json
 
-# OS
+# =========================
+# OS Files
+# =========================
 Thumbs.db
 .DS_Store
-
-package-lock.json
