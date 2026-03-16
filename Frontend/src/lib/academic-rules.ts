@@ -79,6 +79,7 @@ export const DEGREE_OPTIONS: Record<string, DegreeConfig> = {
 // --------------------------------------------------
 
 export function getTermsForDegree(degreeKey: string): string[] {
+
   const config = DEGREE_OPTIONS[degreeKey];
   if (!config) return [];
 
@@ -87,19 +88,6 @@ export function getTermsForDegree(degreeKey: string): string[] {
     (_, i) => `Term ${i + 1}`
   );
 }
-
-
-// --------------------------------------------------
-// AI MODELS (Fallback for UI compatibility)
-// Used by TopNav + older components
-// Backend will still override with /model-info
-// --------------------------------------------------
-
-export const AI_MODELS = [
-  { id: "logistic", name: "Logistic Regression" },
-  { id: "extra_trees", name: "Extra Trees" },
-  { id: "xgboost", name: "XGBoost" },
-];
 
 
 // --------------------------------------------------
@@ -121,17 +109,37 @@ export interface BackendModelInfo {
   metrics: Record<string, BackendModelMetrics>;
 }
 
+export interface DashboardModel {
+  id: string;
+  name: string;
+}
+
 
 // --------------------------------------------------
 // Convert backend models into UI models
-// (Logistic + Top 2 automatically)
+// Logistic (baseline) + Top 2 models by F1
 // --------------------------------------------------
 
-export function getDashboardModels(modelInfo: BackendModelInfo) {
+export function getDashboardModels(modelInfo: BackendModelInfo): DashboardModel[] {
 
   if (!modelInfo?.metrics) return [];
 
-  return Object.keys(modelInfo.metrics).map((id) => ({
+  const models = modelInfo.metrics;
+
+  const baseline: [string, BackendModelMetrics][] = [];
+
+  if (models["logistic"]) {
+    baseline.push(["logistic", models["logistic"]]);
+  }
+
+  const ranked = Object.entries(models)
+    .filter(([name]) => name !== "logistic")
+    .sort((a, b) => (b[1].f1 ?? 0) - (a[1].f1 ?? 0))
+    .slice(0, 2);
+
+  const selected = [...baseline, ...ranked];
+
+  return selected.map(([id]) => ({
     id,
     name: id
       .replace(/_/g, " ")

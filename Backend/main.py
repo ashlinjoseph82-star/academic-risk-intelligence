@@ -18,7 +18,7 @@ from ml.predict import predict_student
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models"
 METADATA_PATH = MODEL_DIR / "metadata.json"
-DB_PATH = BASE_DIR / "database" / "students.db"
+DB_PATH = BASE_DIR / "database" / "students_v2.db"
 
 
 # --------------------------------------------------
@@ -27,7 +27,7 @@ DB_PATH = BASE_DIR / "database" / "students.db"
 
 app = FastAPI(
     title="Academic AI Guard API",
-    version="5.2.2"
+    version="5.3.1"
 )
 
 app.add_middleware(
@@ -46,9 +46,12 @@ app.add_middleware(
 MODEL_MAP = {
     "Logistic Regression": "logistic",
     "Extra Trees": "extra_trees",
+    "Random Forest": "random_forest",
     "XGBoost": "xgboost",
+
     "logistic": "logistic",
     "extra_trees": "extra_trees",
+    "random_forest": "random_forest",
     "xgboost": "xgboost",
 }
 
@@ -112,11 +115,10 @@ def predict(data: StudentInput):
 
     payload = data.model_dump(exclude_none=True)
 
-    model_name = normalize_model_name(payload.get("model"))
-    payload["model"] = model_name
+    payload["model"] = normalize_model_name(payload.get("model"))
 
-    # Ensure rule fields always exist
     payload.setdefault("credits_earned", 0)
+    payload.setdefault("term", 1)
 
     payload.setdefault("ge_credits", 0)
     payload.setdefault("humanities_credits", 0)
@@ -157,31 +159,43 @@ def model_info():
     with open(METADATA_PATH) as f:
         metadata = json.load(f)
 
-    latest_version = metadata["latest_version"]
+    latest_version = metadata.get("latest_version")
+
+    history = metadata.get("history", [])
 
     latest_entry = next(
-        h for h in metadata["history"]
-        if h["version"] == latest_version
+        (h for h in history if h.get("version") == latest_version),
+        None
     )
 
-    all_models = latest_entry["models"]
+    if not latest_entry:
+        raise HTTPException(status_code=500, detail="Latest model version not found")
+
+    all_models = latest_entry.get("models", {})
+
+    if not all_models:
+        raise HTTPException(status_code=500, detail="Model metrics missing")
 
     dashboard_models = {}
 
+    # Always include baseline model
     if "logistic" in all_models:
         dashboard_models["logistic"] = all_models["logistic"]
 
+    # Remove baseline from ranking
     remaining_models = {
         k: v for k, v in all_models.items()
         if k != "logistic"
     }
 
+    # Rank by F1 score
     ranked_models = sorted(
         remaining_models.items(),
-        key=lambda x: x[1].get("recall", x[1].get("recall_delayed", 0)),
+        key=lambda x: x[1].get("f1", 0),
         reverse=True
     )
 
+    # Select top 2 models
     for name, metrics in ranked_models[:2]:
 
         normalized_metrics = metrics.copy()
@@ -191,15 +205,16 @@ def model_info():
 
         dashboard_models[name] = normalized_metrics
 
+    # Determine best model
     best_model = max(
         dashboard_models,
-        key=lambda m: dashboard_models[m].get("recall", 0)
+        key=lambda m: dashboard_models[m].get("f1", 0)
     )
 
     return {
         "version": latest_entry["version"],
         "selected_model": best_model,
-        "dataset_size": latest_entry["dataset_size"],
+        "dataset_size": latest_entry.get("dataset_size", 0),
         "metrics": dashboard_models
     }
 

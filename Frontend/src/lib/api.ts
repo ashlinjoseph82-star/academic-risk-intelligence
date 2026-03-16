@@ -94,6 +94,7 @@ async function safeFetch(url: string, options?: RequestInit) {
 
 // -------------------------------------------
 // MODEL NAME MAPPING
+// Supports dynamic models from backend
 // -------------------------------------------
 
 export function mapModelName(uiModel: string): string {
@@ -103,16 +104,24 @@ export function mapModelName(uiModel: string): string {
   const modelMap: Record<string, string> = {
 
     "Logistic Regression": "logistic",
+    "Random Forest": "random_forest",
     "Extra Trees": "extra_trees",
     "XGBoost": "xgboost",
 
     "logistic": "logistic",
+    "random_forest": "random_forest",
     "extra_trees": "extra_trees",
     "xgboost": "xgboost",
 
   };
 
-  return modelMap[uiModel] ?? uiModel.toLowerCase().replace(/\s+/g, "_");
+  // Known model
+  if (modelMap[uiModel]) {
+    return modelMap[uiModel];
+  }
+
+  // Dynamic model (catboost, lightgbm, etc.)
+  return uiModel.toLowerCase().replace(/\s+/g, "_");
 }
 
 
@@ -223,6 +232,8 @@ export async function predictRisk(
 
   });
 
+  const probability = Math.max(0, Math.min(100, backendResult.probability));
+
   const insights: string[] = [
 
     `Model version ${backendResult.model_version} used.`,
@@ -249,8 +260,6 @@ export async function predictRisk(
 
   }
 
-  const probability = Math.max(0, Math.min(100, backendResult.probability));
-
   return {
 
     risk_level: backendResult.risk_level,
@@ -259,6 +268,7 @@ export async function predictRisk(
     insights,
 
   };
+
 }
 
 
