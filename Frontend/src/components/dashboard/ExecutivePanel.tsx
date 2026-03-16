@@ -1,85 +1,102 @@
 import { useEffect, useState } from "react";
 import { useAppState } from "@/lib/app-state";
+import { getModelInfo, mapModelName, type BackendPrediction, type ModelInfoResponse } from "@/lib/api";
 import {
-  getCompletionPct,
-  getExpectedByTerm,
   getTotalEarned,
-  DEGREE_OPTIONS,
+  getExpectedByTerm,
+  DEGREE_OPTIONS
 } from "@/lib/academic-rules";
-import { predictStudent, getModelInfo } from "@/lib/api";
 import { RadialBarChart, RadialBar, ResponsiveContainer } from "recharts";
 import { Shield, AlertTriangle, AlertCircle } from "lucide-react";
 
-type BackendPrediction = {
-  prediction: "On-Time" | "Delayed";
-  probability: number;
-  risk_level: "Low" | "Medium" | "High";
-  model_version: string;
-  model_used: string;
-};
-
 export function ExecutivePanel() {
-  const { degree, term, credits, model } = useAppState();
 
-  const [prediction, setPrediction] = useState<BackendPrediction | null>(null);
-  const [modelInfo, setModelInfo] = useState<any>(null);
+  const { term, model, degree, credits, prediction } = useAppState();
+
+  const [modelInfo, setModelInfo] = useState<ModelInfoResponse | null>(null);
 
   const termNum = parseInt(term.replace("Term ", "")) || 4;
+  const modelKey = mapModelName(model);
 
-  // --------------------------------------------------
-  // Fetch Prediction
-  // --------------------------------------------------
+  //--------------------------------------------------
+  // CREDIT FEATURES
+  //--------------------------------------------------
+
+  const earnedCredits = getTotalEarned(credits);
+  const expectedCredits = getExpectedByTerm(degree, termNum);
+
+  const deviation = earnedCredits - expectedCredits;
+
+  const totalCredits = DEGREE_OPTIONS[degree]?.totalCredits ?? 160;
+
+  const completionPct = earnedCredits / totalCredits;
+
+  //--------------------------------------------------
+  // LOAD MODEL METRICS
+  //--------------------------------------------------
+
   useEffect(() => {
-    async function runPrediction() {
-      try {
-        const result = await predictStudent({
-          model,
 
-          semester: termNum,
-          failed_courses: 0,
-
-          attendance_rate: 0.85,
-          stress_level: 0.4,
-          extracurricular_score: 0.6,
-
-          internship_completed: 0,
-          family_income_level: 2,
-          part_time_job: 0,
-          scholarship: 0,
-          campus_resident: 1,
-        });
-
-        setPrediction(result);
-      } catch (err) {
-        console.error("Prediction failed:", err);
-      }
-    }
-
-    runPrediction();
-  }, [model, term]);
-
-  // --------------------------------------------------
-  // Fetch Model Metrics
-  // --------------------------------------------------
-  useEffect(() => {
     async function loadModelInfo() {
+
       try {
+
         const info = await getModelInfo();
         setModelInfo(info);
+
       } catch (err) {
+
         console.error("Model info failed:", err);
+
       }
+
     }
 
     loadModelInfo();
+
   }, []);
 
-  // --------------------------------------------------
-  // Derived UI Values
-  // --------------------------------------------------
+  //--------------------------------------------------
+  // RISK DATA
+  //--------------------------------------------------
 
-  const riskLevel = prediction?.risk_level ?? "Medium";
-  const probabilityPct = prediction?.probability ?? 0;
+  const probabilityRaw = prediction?.probability ?? 0;
+
+  // Safety clamp
+  const probabilityPct = Math.max(0, Math.min(100, Number(probabilityRaw) || 0));
+
+  const riskLevel: BackendPrediction["risk_level"] = prediction?.risk_level ?? "Low";
+
+  //--------------------------------------------------
+  // COLOR LOGIC
+  //--------------------------------------------------
+
+  let probabilityColor = "text-green-400";
+  let probabilityGlow = "drop-shadow-[0_0_6px_rgba(34,197,94,0.7)]";
+  let gaugeColor = "hsl(155,70%,45%)";
+
+  if (riskLevel === "Medium") {
+    probabilityColor = "text-yellow-400";
+    probabilityGlow = "drop-shadow-[0_0_6px_rgba(234,179,8,0.7)]";
+    gaugeColor = "hsl(40,85%,55%)";
+  }
+
+  if (riskLevel === "High") {
+    probabilityColor = "text-red-400";
+    probabilityGlow = "drop-shadow-[0_0_6px_rgba(239,68,68,0.7)]";
+    gaugeColor = "hsl(0,72%,55%)";
+  }
+
+  const gaugeData = [
+    {
+      value: probabilityPct,
+      fill: gaugeColor,
+    },
+  ];
+
+  //--------------------------------------------------
+  // RISK BADGE
+  //--------------------------------------------------
 
   const riskColor =
     riskLevel === "Low"
@@ -109,41 +126,33 @@ export function ExecutivePanel() {
       ? "Attention Needed"
       : "At Risk";
 
-  const gaugeData = [
-    {
-      value: probabilityPct,
-      fill:
-        riskLevel === "Low"
-          ? "hsl(155,70%,45%)"
-          : riskLevel === "Medium"
-          ? "hsl(40,85%,55%)"
-          : "hsl(0,72%,55%)",
-    },
-  ];
+  //--------------------------------------------------
+  // MODEL METRICS
+  //--------------------------------------------------
 
-  const selectedModel = modelInfo?.selected_model;
+  const metrics = modelInfo?.metrics?.[modelKey];
 
-  const accuracy = modelInfo
-    ? (modelInfo.metrics[selectedModel]?.accuracy * 100).toFixed(2)
+  const accuracy = metrics ? (metrics.accuracy * 100).toFixed(2) : "--";
+  const f1 = metrics ? (metrics.f1 * 100).toFixed(2) : "--";
+  const precision = metrics ? (metrics.precision * 100).toFixed(2) : "--";
+
+  const recall = metrics
+    ? ((metrics.recall ?? metrics.recall_delayed ?? 0) * 100).toFixed(2)
     : "--";
 
-  const f1 = modelInfo
-    ? (modelInfo.metrics[selectedModel]?.f1 * 100).toFixed(2)
-    : "--";
-
-  const precision = modelInfo
-    ? (modelInfo.metrics[selectedModel]?.precision * 100).toFixed(2)
-    : "--";
-
-  const recall = modelInfo
-    ? (modelInfo.metrics[selectedModel]?.recall_delayed * 100).toFixed(2)
-    : "--";
+  //--------------------------------------------------
+  // UI
+  //--------------------------------------------------
 
   return (
     <div className="glass-card-glow p-5 animate-fade-in-up">
+
       <div className="flex items-start justify-between gap-6">
+
         <div className="flex-1 space-y-4">
+
           <div className="flex items-center gap-3">
+
             <h2 className="text-lg font-semibold">
               Executive Command Panel
             </h2>
@@ -154,51 +163,32 @@ export function ExecutivePanel() {
               <RiskIcon className="h-3 w-3" />
               {statusLabel}
             </span>
+
           </div>
 
-          {/* MODEL PERFORMANCE */}
+          <div className="grid grid-cols-2 gap-x-8 gap-y-3 lg:grid-cols-5">
 
-          <div className="grid grid-cols-2 gap-x-8 gap-y-3 lg:grid-cols-4">
+            <MetricItem label="Risk Level" value={riskLevel} valueClass={riskColor} />
+            <MetricItem label="Model Accuracy" value={`${accuracy}%`} />
+            <MetricItem label="F1 Score" value={`${f1}%`} />
+            <MetricItem label="Precision" value={`${precision}%`} />
+            <MetricItem label="Recall" value={`${recall}%`} />
 
-            <MetricItem
-              label="Risk Level"
-              value={riskLevel}
-              valueClass={riskColor}
-            />
-
-            <MetricItem
-              label="Model Accuracy"
-              value={`${accuracy}%`}
-            />
-
-            <MetricItem
-              label="F1 Score"
-              value={`${f1}%`}
-            />
-
-            <MetricItem
-              label="Precision"
-              value={`${precision}%`}
-            />
-
-            <MetricItem
-              label="Recall"
-              value={`${recall}%`}
-            />
           </div>
 
           <div className="text-xs text-muted-foreground">
-            Target Variable:{" "}
+            Target Variable:
             <span className="font-medium">
-              Graduation Outcome (On-Time vs Delayed)
+              {" "}Graduation Outcome (On-Time vs Delayed)
             </span>
           </div>
+
         </div>
 
-        {/* GAUGE */}
-
         <div className="flex-shrink-0 w-[130px] h-[130px]">
+
           <ResponsiveContainer width="100%" height="100%">
+
             <RadialBarChart
               cx="50%"
               cy="50%"
@@ -209,23 +199,29 @@ export function ExecutivePanel() {
               data={gaugeData}
               barSize={8}
             >
+
               <RadialBar
                 dataKey="value"
                 cornerRadius={4}
                 background={{ fill: "hsl(220,20%,15%)" }}
               />
+
             </RadialBarChart>
+
           </ResponsiveContainer>
 
-          <p className="text-center -mt-12 text-2xl font-bold font-mono">
+          <p className={`text-center -mt-12 text-2xl font-bold font-mono ${probabilityColor} ${probabilityGlow}`}>
             {probabilityPct}%
           </p>
 
           <p className="text-center text-[10px] text-muted-foreground mt-0.5">
             Probability of Delay
           </p>
+
         </div>
+
       </div>
+
     </div>
   );
 }
@@ -239,6 +235,7 @@ function MetricItem({
   value: string;
   valueClass?: string;
 }) {
+
   return (
     <div>
       <p className="text-[10px] uppercase tracking-wider text-muted-foreground">

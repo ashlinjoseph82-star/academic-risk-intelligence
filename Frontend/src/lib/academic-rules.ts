@@ -14,7 +14,7 @@ export const NON_CORE_TOTAL = 64;
 
 export const FIXED_REQUIREMENTS = {
   ge: 32,
-  humanities: 8, // subset of GE
+  humanities: 8,
   longIIP: 10,
   shortIIP: 2,
   sip: 3,
@@ -81,6 +81,7 @@ export const DEGREE_OPTIONS: Record<string, DegreeConfig> = {
 export function getTermsForDegree(degreeKey: string): string[] {
   const config = DEGREE_OPTIONS[degreeKey];
   if (!config) return [];
+
   return Array.from(
     { length: config.totalTerms },
     (_, i) => `Term ${i + 1}`
@@ -89,14 +90,54 @@ export function getTermsForDegree(degreeKey: string): string[] {
 
 
 // --------------------------------------------------
-// AI Models (Aligned with Backend)
+// AI MODELS (Fallback for UI compatibility)
+// Used by TopNav + older components
+// Backend will still override with /model-info
 // --------------------------------------------------
 
 export const AI_MODELS = [
   { id: "logistic", name: "Logistic Regression" },
-  { id: "decision_tree", name: "Decision Tree" },
+  { id: "extra_trees", name: "Extra Trees" },
   { id: "xgboost", name: "XGBoost" },
 ];
+
+
+// --------------------------------------------------
+// Backend Model Interfaces
+// --------------------------------------------------
+
+export interface BackendModelMetrics {
+  accuracy: number;
+  precision: number;
+  recall?: number;
+  recall_delayed?: number;
+  f1: number;
+}
+
+export interface BackendModelInfo {
+  version: string;
+  selected_model: string;
+  dataset_size: number;
+  metrics: Record<string, BackendModelMetrics>;
+}
+
+
+// --------------------------------------------------
+// Convert backend models into UI models
+// (Logistic + Top 2 automatically)
+// --------------------------------------------------
+
+export function getDashboardModels(modelInfo: BackendModelInfo) {
+
+  if (!modelInfo?.metrics) return [];
+
+  return Object.keys(modelInfo.metrics).map((id) => ({
+    id,
+    name: id
+      .replace(/_/g, " ")
+      .replace(/\b\w/g, (c) => c.toUpperCase()),
+  }));
+}
 
 
 // --------------------------------------------------
@@ -226,6 +267,7 @@ export function getExpectedByTerm(
   degree: string,
   termNum: number
 ): number {
+
   const config = DEGREE_OPTIONS[degree];
   if (!config) return 0;
 

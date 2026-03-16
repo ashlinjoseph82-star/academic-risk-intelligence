@@ -14,11 +14,7 @@ from sklearn.impute import SimpleImputer
 
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
-from sklearn.ensemble import (
-    RandomForestClassifier,
-    GradientBoostingClassifier,
-    ExtraTreesClassifier
-)
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier, ExtraTreesClassifier
 
 from xgboost import XGBClassifier
 from lightgbm import LGBMClassifier
@@ -26,7 +22,9 @@ from catboost import CatBoostClassifier
 
 
 BASE_DIR = Path(__file__).resolve().parent.parent
-DB_PATH = BASE_DIR / "database" / "students.db"
+
+DB_PATH = BASE_DIR / "database" / "students_v2.db"
+
 MODEL_DIR = BASE_DIR / "models"
 METADATA_PATH = MODEL_DIR / "metadata.json"
 
@@ -50,13 +48,21 @@ def get_next_version(existing_metadata):
 
 def train():
 
-    print("Loading data...")
+    print("Loading dataset...")
     df = load_data()
+
     df = df.dropna()
 
-    # ---------------------------
+    # ---------------------------------
+    # Rename semester → term (important)
+    # ---------------------------------
+
+    if "semester" in df.columns:
+        df = df.rename(columns={"semester": "term"})
+
+    # ---------------------------------
     # Feature Engineering
-    # ---------------------------
+    # ---------------------------------
 
     df["academic_pressure"] = (
         df["failed_courses"] * 0.5 +
@@ -69,14 +75,26 @@ def train():
         df["attendance_rate"] * 5
     )
 
+    # ---------------------------------
+    # NEW FEATURE (Academic Pace)
+    # ---------------------------------
+
+    df["credit_progress_ratio"] = df["total_credits"] / (df["expected_credits"] + 1)
+
+    # ---------------------------------
+    # Feature Selection
+    # ---------------------------------
+
     numeric_features = [
-        "semester",
+        "term",
         "failed_courses",
         "attendance_rate",
         "stress_level",
         "extracurricular_score",
         "academic_pressure",
-        "engagement_score"
+        "engagement_score",
+        "deviation",
+        "credit_progress_ratio"
     ]
 
     categorical_features = [
@@ -94,12 +112,12 @@ def train():
     scale_pos_weight = class_counts[0] / class_counts[1] if len(class_counts) > 1 else 1
 
     X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42, stratify=y
+        X, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    # ---------------------------
+    # ---------------------------------
     # Preprocessing
-    # ---------------------------
+    # ---------------------------------
 
     numeric_scaled = Pipeline([
         ("imputer", SimpleImputer(strategy="median")),
@@ -125,18 +143,15 @@ def train():
         ("cat", categorical_transformer, categorical_features)
     ])
 
-    # ---------------------------
+    # ---------------------------------
     # Models
-    # ---------------------------
+    # ---------------------------------
 
     models = {
 
         "logistic": Pipeline([
             ("preprocessor", preprocessor_scaled),
-            ("classifier", LogisticRegression(
-                max_iter=3000,
-                class_weight="balanced"
-            ))
+            ("classifier", LogisticRegression(max_iter=3000, class_weight="balanced"))
         ]),
 
         "decision_tree": Pipeline([
@@ -205,7 +220,6 @@ def train():
             ("classifier", LGBMClassifier(
                 n_estimators=500,
                 learning_rate=0.03,
-                max_depth=-1,
                 random_state=42
             ))
         ]),
@@ -222,9 +236,9 @@ def train():
         ])
     }
 
-    # ---------------------------
+    # ---------------------------------
     # Versioning
-    # ---------------------------
+    # ---------------------------------
 
     if METADATA_PATH.exists():
         with open(METADATA_PATH, "r") as f:
@@ -245,36 +259,18 @@ def train():
         model.fit(X_train, y_train)
 
         y_pred = model.predict(X_test)
+        probs = model.predict_proba(X_test)[:, 1]
 
         acc = accuracy_score(y_test, y_pred)
-
-        precision = precision_score(
-            y_test,
-            y_pred,
-            pos_label=1,
-            zero_division=0
-        )
-
-        recall_delayed = recall_score(
-            y_test,
-            y_pred,
-            pos_label=1,
-            zero_division=0
-        )
-
-        f1 = f1_score(
-            y_test,
-            y_pred,
-            zero_division=0
-        )
-
-        probs = model.predict_proba(X_test)[:, 1]
+        precision = precision_score(y_test, y_pred, zero_division=0)
+        recall = recall_score(y_test, y_pred, zero_division=0)
+        f1 = f1_score(y_test, y_pred, zero_division=0)
         roc = roc_auc_score(y_test, probs)
 
         print(
             f"{name.upper()} → "
             f"Precision:{precision:.4f} "
-            f"Recall:{recall_delayed:.4f} "
+            f"Recall:{recall:.4f} "
             f"ROC:{roc:.4f}"
         )
 
@@ -283,54 +279,34 @@ def train():
         results[name] = {
             "accuracy": round(acc, 4),
             "precision": round(precision, 4),
+            "recall": round(recall, 4),
             "f1": round(f1, 4),
-            "roc_auc": round(roc, 4),
-            "recall_delayed": round(recall_delayed, 4)
+            "roc_auc": round(roc, 4)
         }
 
-    # ---------------------------
-    # Select Best 3
-    # ---------------------------
+    print("\nTraining complete.")
 
-    sorted_models = sorted(
-        results.items(),
-        key=lambda x: x[1]["recall_delayed"],
-        reverse=True
-    )
-
-    production_models = ["logistic"]
-
-    for model_name, _ in sorted_models:
-        if model_name != "logistic":
-            production_models.append(model_name)
-
-        if len(production_models) == 3:
-            break
-
-    print("\nProduction Models Selected:")
-    print(production_models)
-
-    new_entry = {
+    entry = {
         "version": version,
-        "models": results,
-        "production_models": production_models,
-        "trained_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "dataset": "students_v2.db",
         "dataset_size": len(df),
+        "trained_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        "models": results
     }
 
     if metadata:
         metadata["latest_version"] = version
-        metadata["history"].append(new_entry)
+        metadata["history"].append(entry)
     else:
         metadata = {
             "latest_version": version,
-            "history": [new_entry]
+            "history": [entry]
         }
 
     with open(METADATA_PATH, "w") as f:
         json.dump(metadata, f, indent=4)
 
-    print(f"\nAll models saved under version {version}")
+    print(f"\nModels saved under version {version}")
 
 
 if __name__ == "__main__":

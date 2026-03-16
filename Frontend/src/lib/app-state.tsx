@@ -1,15 +1,23 @@
 import React, { createContext, useContext, useState, type ReactNode } from "react";
 import type { CreditInputs } from "@/lib/academic-rules";
+import type { BackendPrediction } from "@/lib/api";
 
 interface AppState {
   degree: string;
   setDegree: (d: string) => void;
+
   term: string;
   setTerm: (t: string) => void;
+
   model: string;
   setModel: (m: string) => void;
+
   credits: CreditInputs;
   setCredits: (c: CreditInputs) => void;
+
+  // NEW: Prediction State
+  prediction: BackendPrediction | null;
+  setPrediction: (p: BackendPrediction | null) => void;
 }
 
 const defaultCredits: CreditInputs = {
@@ -27,13 +35,30 @@ const defaultCredits: CreditInputs = {
 const AppContext = createContext<AppState | null>(null);
 
 export function AppProvider({ children }: { children: ReactNode }) {
+
   const [degree, setDegree] = useState("BTECH");
   const [term, setTerm] = useState("Term 5");
   const [model, setModel] = useState("xgboost");
   const [credits, setCredits] = useState<CreditInputs>(defaultCredits);
 
+  // NEW: prediction state
+  const [prediction, setPrediction] = useState<BackendPrediction | null>(null);
+
   return (
-    <AppContext.Provider value={{ degree, setDegree, term, setTerm, model, setModel, credits, setCredits }}>
+    <AppContext.Provider
+      value={{
+        degree,
+        setDegree,
+        term,
+        setTerm,
+        model,
+        setModel,
+        credits,
+        setCredits,
+        prediction,
+        setPrediction,
+      }}
+    >
       {children}
     </AppContext.Provider>
   );
