@@ -40,7 +40,27 @@ app.add_middleware(
 
 
 # --------------------------------------------------
-# UI Model → Backend Model Mapping
+# ROOT ROUTE
+# --------------------------------------------------
+
+@app.get("/")
+def root():
+    return {
+        "message": "Academic AI Guard API is running 🚀",
+        "endpoints": {
+            "predict": "POST /predict",
+            "model_info": "GET /model-info",
+            "summary": "GET /summary",
+            "correlation": "GET /correlation",
+            "scatter": "GET /scatter?x=col&y=col",
+            "semester_progression": "GET /semester-progression",
+            "retrain": "POST /retrain"
+        }
+    }
+
+
+# --------------------------------------------------
+# Model Mapping
 # --------------------------------------------------
 
 MODEL_MAP = {
@@ -48,7 +68,6 @@ MODEL_MAP = {
     "Extra Trees": "extra_trees",
     "Random Forest": "random_forest",
     "XGBoost": "xgboost",
-
     "logistic": "logistic",
     "extra_trees": "extra_trees",
     "random_forest": "random_forest",
@@ -57,13 +76,10 @@ MODEL_MAP = {
 
 
 def normalize_model_name(name: str) -> str:
-
     if not name:
         return "logistic"
-
     if name in MODEL_MAP:
         return MODEL_MAP[name]
-
     return name.lower().replace(" ", "_")
 
 
@@ -72,11 +88,9 @@ def normalize_model_name(name: str) -> str:
 # --------------------------------------------------
 
 class StudentInput(BaseModel):
-
     model_config = ConfigDict(extra="allow")
 
     model: str
-
     term: int
     failed_courses: int
 
@@ -92,7 +106,6 @@ class StudentInput(BaseModel):
 
     deviation: float
 
-    # Optional rule-based fields
     degree: str | None = None
     credits_earned: float | None = None
 
@@ -107,14 +120,13 @@ class StudentInput(BaseModel):
 
 
 # --------------------------------------------------
-# Prediction Endpoint
+# Prediction
 # --------------------------------------------------
 
 @app.post("/predict")
 def predict(data: StudentInput):
 
     payload = data.model_dump(exclude_none=True)
-
     payload["model"] = normalize_model_name(payload.get("model"))
 
     payload.setdefault("credits_earned", 0)
@@ -130,7 +142,6 @@ def predict(data: StudentInput):
     payload.setdefault("ri_credits", 0)
 
     try:
-
         result = predict_student(payload)
 
         if not isinstance(result, dict):
@@ -139,15 +150,11 @@ def predict(data: StudentInput):
         return result
 
     except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Prediction failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 # --------------------------------------------------
-# Model Info Endpoint
+# Model Info
 # --------------------------------------------------
 
 @app.get("/model-info")
@@ -160,56 +167,27 @@ def model_info():
         metadata = json.load(f)
 
     latest_version = metadata.get("latest_version")
-
     history = metadata.get("history", [])
 
-    latest_entry = next(
-        (h for h in history if h.get("version") == latest_version),
-        None
-    )
+    latest_entry = next((h for h in history if h.get("version") == latest_version), None)
 
     if not latest_entry:
-        raise HTTPException(status_code=500, detail="Latest model version not found")
+        raise HTTPException(status_code=500, detail="Latest model not found")
 
     all_models = latest_entry.get("models", {})
 
-    if not all_models:
-        raise HTTPException(status_code=500, detail="Model metrics missing")
-
     dashboard_models = {}
-
-    # Always include baseline model
     if "logistic" in all_models:
         dashboard_models["logistic"] = all_models["logistic"]
 
-    # Remove baseline from ranking
-    remaining_models = {
-        k: v for k, v in all_models.items()
-        if k != "logistic"
-    }
+    remaining = {k: v for k, v in all_models.items() if k != "logistic"}
 
-    # Rank by F1 score
-    ranked_models = sorted(
-        remaining_models.items(),
-        key=lambda x: x[1].get("f1", 0),
-        reverse=True
-    )
+    ranked = sorted(remaining.items(), key=lambda x: x[1].get("f1", 0), reverse=True)
 
-    # Select top 2 models
-    for name, metrics in ranked_models[:2]:
+    for name, metrics in ranked[:2]:
+        dashboard_models[name] = metrics
 
-        normalized_metrics = metrics.copy()
-
-        if "recall" not in normalized_metrics and "recall_delayed" in normalized_metrics:
-            normalized_metrics["recall"] = normalized_metrics["recall_delayed"]
-
-        dashboard_models[name] = normalized_metrics
-
-    # Determine best model
-    best_model = max(
-        dashboard_models,
-        key=lambda m: dashboard_models[m].get("f1", 0)
-    )
+    best_model = max(dashboard_models, key=lambda m: dashboard_models[m].get("f1", 0))
 
     return {
         "version": latest_entry["version"],
@@ -220,37 +198,21 @@ def model_info():
 
 
 # --------------------------------------------------
-# Dataset Summary
+# Summary
 # --------------------------------------------------
 
 @app.get("/summary")
 def summary():
 
-    if not DB_PATH.exists():
-        raise HTTPException(status_code=500, detail="Database not found")
-
-    try:
-
-        conn = sqlite3.connect(DB_PATH)
-
-        df = pd.read_sql_query(
-            "SELECT * FROM students",
-            conn
-        )
-
-        conn.close()
-
-    except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Database error: {str(e)}"
-        )
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM students", conn)
+    conn.close()
 
     total = len(df)
+    if total == 0:
+        return {"total_students": 0, "delayed_percentage": 0, "on_time_percentage": 0}
 
     delayed = int(df["graduation_outcome"].sum())
-
     on_time = total - delayed
 
     return {
@@ -261,25 +223,117 @@ def summary():
 
 
 # --------------------------------------------------
-# Retrain Endpoint
+# CORRELATION
+# --------------------------------------------------
+
+@app.get("/correlation")
+def correlation():
+
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM students", conn)
+    conn.close()
+
+    numeric_df = df.select_dtypes(include=["number"])
+    corr = numeric_df.corr().fillna(0)
+
+    return {
+        "columns": list(corr.columns),
+        "matrix": corr.values.tolist()
+    }
+
+
+# --------------------------------------------------
+# SCATTER
+# --------------------------------------------------
+
+@app.get("/scatter")
+def scatter(x: str, y: str):
+
+    conn = sqlite3.connect(DB_PATH)
+    df = pd.read_sql_query("SELECT * FROM students", conn)
+    conn.close()
+
+    if x not in df.columns or y not in df.columns:
+        raise HTTPException(status_code=400, detail="Invalid columns")
+
+    data = df[[x, y, "graduation_outcome"]].dropna()
+
+    points = [
+        {
+            "x": float(row[x]),
+            "y": float(row[y]),
+            "outcome": int(row["graduation_outcome"])
+        }
+        for _, row in data.iterrows()
+    ]
+
+    return {
+        "points": points,
+        "available_cols": list(df.select_dtypes(include=["number"]).columns)
+    }
+
+
+# --------------------------------------------------
+# ✅ FIXED SEMESTER PROGRESSION
+# --------------------------------------------------
+
+@app.get("/semester-progression")
+def semester_progression():
+
+    if not DB_PATH.exists():
+        raise HTTPException(status_code=500, detail="Database not found")
+
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        df = pd.read_sql_query("SELECT * FROM students", conn)
+        conn.close()
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"DB error: {str(e)}")
+
+    required_cols = ["semester", "total_credits", "expected_credits", "deviation"]
+
+    for col in required_cols:
+        if col not in df.columns:
+            raise HTTPException(status_code=500, detail=f"Missing column: {col}")
+
+    df = df.dropna(subset=required_cols)
+
+    if df.empty:
+        return {"data": []}
+
+    grouped = (
+        df.groupby("semester")
+        .agg({
+            "total_credits": "mean",
+            "expected_credits": "mean",
+            "deviation": "mean"
+        })
+        .reset_index()
+        .sort_values("semester")
+    )
+
+    return {
+        "data": [
+            {
+                "semester": int(row["semester"]),
+                "avg_total": round(float(row["total_credits"]), 2),
+                "avg_expected": round(float(row["expected_credits"]), 2),
+                "avg_deviation": round(float(row["deviation"]), 2),
+            }
+            for _, row in grouped.iterrows()
+        ]
+    }
+
+
+# --------------------------------------------------
+# Retrain
 # --------------------------------------------------
 
 @app.post("/retrain")
 def retrain():
-
     try:
-
         from ml.train import train
-
         train()
-
-        return {
-            "message": "All models retrained successfully"
-        }
-
+        return {"message": "Models retrained successfully"}
     except Exception as e:
-
-        raise HTTPException(
-            status_code=500,
-            detail=f"Retraining failed: {str(e)}"
-        )
+        raise HTTPException(status_code=500, detail=str(e))
