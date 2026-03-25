@@ -4,28 +4,27 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Database paths
-DB_PATH = BASE_DIR / "database" / "students_v2.db"
+# 🔥 NEW DATABASE (v3)
+DB_PATH = BASE_DIR / "database" / "students_v3.db"
 SCHEMA_PATH = BASE_DIR / "database" / "schema.sql"
 
-TOTAL_STUDENTS = 15000   # 🔥 UPDATED
+TOTAL_STUDENTS = 15000
 TOTAL_REQUIRED_CREDITS = 160
 
-# Degree structures (terms)
 DEGREE_OPTIONS = [12, 16, 20]
 
 
 # --------------------------------------------------
-# Create Database (FORCE RECREATE)
+# CREATE DATABASE (FRESH V3)
 # --------------------------------------------------
 
 def create_database():
     if DB_PATH.exists():
-        print("⚠️ Deleting old database...")
-        DB_PATH.unlink()   # 🔥 overwrite instead of skipping
+        print("⚠️ students_v3.db already exists. Deleting...")
+        DB_PATH.unlink()
 
     if not SCHEMA_PATH.exists():
-        raise FileNotFoundError(f"Schema file not found: {SCHEMA_PATH}")
+        raise FileNotFoundError(f"Schema not found: {SCHEMA_PATH}")
 
     conn = sqlite3.connect(DB_PATH)
     cursor = conn.cursor()
@@ -36,11 +35,9 @@ def create_database():
     conn.commit()
     conn.close()
 
-    return True
-
 
 # --------------------------------------------------
-# Generate Student
+# GENERATE STUDENT
 # --------------------------------------------------
 
 def generate_student():
@@ -78,10 +75,7 @@ def generate_student():
     expected_credits = int((TOTAL_REQUIRED_CREDITS / degree_terms) * term)
     deviation = total_credits - expected_credits
 
-    # --------------------------------------------------
-    # Risk Model (same logic, slightly smoother)
-    # --------------------------------------------------
-
+    # Risk logic
     risk_score = 0
 
     if failed_courses >= 3:
@@ -112,14 +106,12 @@ def generate_student():
     if scholarship == 1 and failed_courses == 0:
         risk_score -= 1
 
-    # Slight randomness
     risk_score += random.uniform(-1.2, 1.2)
 
     delay_probability = min(max(risk_score * 0.12, 0.05), 0.9)
 
     delayed = 1 if random.random() < delay_probability else 0
 
-    # Label noise (realistic)
     if random.random() < 0.05:
         delayed = 1 - delayed
 
@@ -145,7 +137,7 @@ def generate_student():
 
 
 # --------------------------------------------------
-# Populate Database
+# POPULATE DB
 # --------------------------------------------------
 
 def populate_database():
@@ -154,8 +146,6 @@ def populate_database():
     cursor = conn.cursor()
 
     for i in range(TOTAL_STUDENTS):
-
-        student = generate_student()
 
         cursor.execute(
             """
@@ -179,10 +169,9 @@ def populate_database():
                 graduation_outcome
             ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
             """,
-            student,
+            generate_student(),
         )
 
-        # Progress log (optional but nice)
         if (i + 1) % 3000 == 0:
             print(f"Inserted {i+1} students...")
 
@@ -196,12 +185,12 @@ def populate_database():
 
 if __name__ == "__main__":
 
-    print("🚀 Creating v3 database (fresh)...")
+    print("🚀 Creating students_v3.db...")
 
     create_database()
 
-    print("📊 Generating 15,000 diverse students...")
+    print("📊 Generating 15,000 students...")
 
     populate_database()
 
-    print(f"✅ Done. {TOTAL_STUDENTS} students inserted into students_v2.db")
+    print("✅ Done. students_v3.db ready!")

@@ -23,8 +23,8 @@ from catboost import CatBoostClassifier
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# NEW DATASET
-DB_PATH = BASE_DIR / "database" / "students_v2.db"
+# ✅ NOW USING V3
+DB_PATH = BASE_DIR / "database" / "students_v3.db"
 
 MODEL_DIR = BASE_DIR / "models"
 METADATA_PATH = MODEL_DIR / "metadata.json"
@@ -33,6 +33,7 @@ MODEL_DIR.mkdir(exist_ok=True)
 
 
 def load_data():
+    print(f"📂 Using dataset: {DB_PATH}")  # 🔥 debug line
     conn = sqlite3.connect(DB_PATH)
     df = pd.read_sql_query("SELECT * FROM students", conn)
     conn.close()
@@ -47,7 +48,7 @@ def get_next_version(existing_metadata):
     return f"v{number + 1}"
 
 
-def train():
+def retrain():   # 🔥 renamed from train()
 
     print("Loading dataset...")
     df = load_data()
@@ -70,7 +71,7 @@ def train():
     )
 
     # ---------------------------
-    # Feature Selection
+    # Features
     # ---------------------------
 
     numeric_features = [
@@ -135,7 +136,6 @@ def train():
     # ---------------------------
 
     models = {
-
         "logistic": Pipeline([
             ("preprocessor", preprocessor_scaled),
             ("classifier", LogisticRegression(max_iter=3000, class_weight="balanced"))
@@ -143,83 +143,37 @@ def train():
 
         "decision_tree": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", DecisionTreeClassifier(
-                max_depth=6,
-                min_samples_split=20,
-                min_samples_leaf=10,
-                class_weight="balanced",
-                random_state=42
-            ))
+            ("classifier", DecisionTreeClassifier(max_depth=6, min_samples_split=20, min_samples_leaf=10, class_weight="balanced", random_state=42))
         ]),
 
         "random_forest": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", RandomForestClassifier(
-                n_estimators=400,
-                max_depth=8,
-                min_samples_split=15,
-                min_samples_leaf=8,
-                class_weight="balanced",
-                random_state=42
-            ))
+            ("classifier", RandomForestClassifier(n_estimators=400, max_depth=8, min_samples_split=15, min_samples_leaf=8, class_weight="balanced", random_state=42))
         ]),
 
         "extra_trees": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", ExtraTreesClassifier(
-                n_estimators=400,
-                max_depth=8,
-                min_samples_split=15,
-                min_samples_leaf=8,
-                class_weight="balanced",
-                random_state=42
-            ))
+            ("classifier", ExtraTreesClassifier(n_estimators=400, max_depth=8, min_samples_split=15, min_samples_leaf=8, class_weight="balanced", random_state=42))
         ]),
 
         "gradient_boosting": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", GradientBoostingClassifier(
-                n_estimators=400,
-                learning_rate=0.03,
-                max_depth=3,
-                random_state=42
-            ))
+            ("classifier", GradientBoostingClassifier(n_estimators=400, learning_rate=0.03, max_depth=3, random_state=42))
         ]),
 
         "xgboost": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", XGBClassifier(
-                n_estimators=500,
-                learning_rate=0.03,
-                max_depth=4,
-                subsample=0.8,
-                colsample_bytree=0.8,
-                reg_alpha=0.7,
-                reg_lambda=1.5,
-                scale_pos_weight=scale_pos_weight,
-                eval_metric="logloss",
-                random_state=42
-            ))
+            ("classifier", XGBClassifier(n_estimators=500, learning_rate=0.03, max_depth=4, subsample=0.8, colsample_bytree=0.8, reg_alpha=0.7, reg_lambda=1.5, scale_pos_weight=scale_pos_weight, eval_metric="logloss", random_state=42))
         ]),
 
         "lightgbm": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", LGBMClassifier(
-                n_estimators=500,
-                learning_rate=0.03,
-                random_state=42
-            ))
+            ("classifier", LGBMClassifier(n_estimators=500, learning_rate=0.03, random_state=42))
         ]),
 
         "catboost": Pipeline([
             ("preprocessor", preprocessor_unscaled),
-            ("classifier", CatBoostClassifier(
-                iterations=500,
-                learning_rate=0.03,
-                depth=6,
-                verbose=0,
-                random_state=42
-            ))
+            ("classifier", CatBoostClassifier(iterations=500, learning_rate=0.03, depth=6, verbose=0, random_state=42))
         ])
     }
 
@@ -254,12 +208,7 @@ def train():
         f1 = f1_score(y_test, y_pred, zero_division=0)
         roc = roc_auc_score(y_test, probs)
 
-        print(
-            f"{name.upper()} → "
-            f"Precision:{precision:.4f} "
-            f"Recall:{recall:.4f} "
-            f"ROC:{roc:.4f}"
-        )
+        print(f"{name.upper()} → Precision:{precision:.4f} Recall:{recall:.4f} ROC:{roc:.4f}")
 
         joblib.dump(model, version_dir / f"{name}.pkl")
 
@@ -275,7 +224,7 @@ def train():
 
     entry = {
         "version": version,
-        "dataset": "students_v2.db",
+        "dataset": "students_v3.db",  # 🔥 updated
         "dataset_size": len(df),
         "trained_on": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
         "models": results
@@ -295,6 +244,8 @@ def train():
 
     print(f"\nModels saved under version {version}")
 
+    return results   # 🔥 IMPORTANT
+
 
 if __name__ == "__main__":
-    train()
+    retrain()

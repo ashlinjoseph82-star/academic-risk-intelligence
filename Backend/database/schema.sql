@@ -4,7 +4,7 @@ CREATE TABLE students (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
 
     -- Academic Progress
-    semester INTEGER,
+    term INTEGER,
     core_credits INTEGER,
     pep_credits INTEGER,
     humanities_credits INTEGER,

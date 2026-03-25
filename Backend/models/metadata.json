@@ -1,5 +1,5 @@
 {
-    "latest_version": "v4",
+    "latest_version": "v6",
     "history": [
         {
             "version": "v1",
@@ -258,6 +258,134 @@
                     "recall": 0.5273,
                     "f1": 0.581,
                     "roc_auc": 0.7315
+                }
+            }
+        },
+        {
+            "version": "v5",
+            "dataset": "students_v2.db",
+            "dataset_size": 12000,
+            "trained_on": "2026-03-25 11:17:47",
+            "models": {
+                "logistic": {
+                    "accuracy": 0.6538,
+                    "precision": 0.5625,
+                    "recall": 0.6409,
+                    "f1": 0.5991,
+                    "roc_auc": 0.7104
+                },
+                "decision_tree": {
+                    "accuracy": 0.68,
+                    "precision": 0.5951,
+                    "recall": 0.6491,
+                    "f1": 0.6209,
+                    "roc_auc": 0.7249
+                },
+                "random_forest": {
+                    "accuracy": 0.69,
+                    "precision": 0.6052,
+                    "recall": 0.6677,
+                    "f1": 0.6349,
+                    "roc_auc": 0.7346
+                },
+                "extra_trees": {
+                    "accuracy": 0.6725,
+                    "precision": 0.5822,
+                    "recall": 0.6687,
+                    "f1": 0.6225,
+                    "roc_auc": 0.7269
+                },
+                "gradient_boosting": {
+                    "accuracy": 0.6896,
+                    "precision": 0.6393,
+                    "recall": 0.5304,
+                    "f1": 0.5798,
+                    "roc_auc": 0.7316
+                },
+                "xgboost": {
+                    "accuracy": 0.6833,
+                    "precision": 0.5951,
+                    "recall": 0.6749,
+                    "f1": 0.6325,
+                    "roc_auc": 0.7273
+                },
+                "lightgbm": {
+                    "accuracy": 0.6817,
+                    "precision": 0.6309,
+                    "recall": 0.5098,
+                    "f1": 0.5639,
+                    "roc_auc": 0.7206
+                },
+                "catboost": {
+                    "accuracy": 0.6921,
+                    "precision": 0.6459,
+                    "recall": 0.5253,
+                    "f1": 0.5794,
+                    "roc_auc": 0.7329
+                }
+            }
+        },
+        {
+            "version": "v6",
+            "dataset": "students_v3.db",
+            "dataset_size": 15000,
+            "trained_on": "2026-03-25 11:30:09",
+            "models": {
+                "logistic": {
+                    "accuracy": 0.6333,
+                    "precision": 0.5412,
+                    "recall": 0.6415,
+                    "f1": 0.5871,
+                    "roc_auc": 0.6862
+                },
+                "decision_tree": {
+                    "accuracy": 0.6467,
+                    "precision": 0.5569,
+                    "recall": 0.6382,
+                    "f1": 0.5948,
+                    "roc_auc": 0.7003
+                },
+                "random_forest": {
+                    "accuracy": 0.6553,
+                    "precision": 0.567,
+                    "recall": 0.6423,
+                    "f1": 0.6023,
+                    "roc_auc": 0.7121
+                },
+                "extra_trees": {
+                    "accuracy": 0.6497,
+                    "precision": 0.5601,
+                    "recall": 0.6423,
+                    "f1": 0.5984,
+                    "roc_auc": 0.7056
+                },
+                "gradient_boosting": {
+                    "accuracy": 0.658,
+                    "precision": 0.5988,
+                    "recall": 0.4799,
+                    "f1": 0.5328,
+                    "roc_auc": 0.7081
+                },
+                "xgboost": {
+                    "accuracy": 0.6517,
+                    "precision": 0.5621,
+                    "recall": 0.6456,
+                    "f1": 0.601,
+                    "roc_auc": 0.7059
+                },
+                "lightgbm": {
+                    "accuracy": 0.65,
+                    "precision": 0.5846,
+                    "recall": 0.4791,
+                    "f1": 0.5266,
+                    "roc_auc": 0.6965
+                },
+                "catboost": {
+                    "accuracy": 0.6607,
+                    "precision": 0.6022,
+                    "recall": 0.4856,
+                    "f1": 0.5377,
+                    "roc_auc": 0.709
                 }
             }
         }

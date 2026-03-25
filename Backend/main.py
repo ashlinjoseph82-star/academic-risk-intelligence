@@ -18,7 +18,9 @@ from ml.predict import predict_student
 BASE_DIR = Path(__file__).resolve().parent
 MODEL_DIR = BASE_DIR / "models"
 METADATA_PATH = MODEL_DIR / "metadata.json"
-DB_PATH = BASE_DIR / "database" / "students_v2.db"
+
+# ✅ USING V3 DATABASE
+DB_PATH = BASE_DIR / "database" / "students_v3.db"
 
 
 # --------------------------------------------------
@@ -274,7 +276,7 @@ def scatter(x: str, y: str):
 
 
 # --------------------------------------------------
-# ✅ FIXED SEMESTER PROGRESSION
+# SEMESTER PROGRESSION (UNCHANGED AS YOU SAID)
 # --------------------------------------------------
 
 @app.get("/semester-progression")
@@ -326,14 +328,20 @@ def semester_progression():
 
 
 # --------------------------------------------------
-# Retrain
+# RETRAIN (FIXED)
 # --------------------------------------------------
 
 @app.post("/retrain")
-def retrain():
+def retrain_models():
     try:
-        from ml.train import train
-        train()
-        return {"message": "Models retrained successfully"}
+        from ml.retrain import retrain
+
+        metrics = retrain()
+
+        return {
+            "message": "Models retrained successfully",
+            "metrics": metrics
+        }
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

@@ -1,12 +1,12 @@
 // -------------------------------------------
-// Academic AI Guard - Full API Layer (FINAL STABLE)
+// Academic AI Guard - Full API Layer (FINAL FIXED)
 // -------------------------------------------
 
 const BASE_URL = "http://127.0.0.1:8000";
 
 
 // -------------------------------------------
-// SAFE FETCH (IMPROVED)
+// SAFE FETCH
 // -------------------------------------------
 
 async function safeFetch(url: string, options?: RequestInit) {
@@ -29,7 +29,6 @@ async function safeFetch(url: string, options?: RequestInit) {
 
     const data = await response.json();
 
-    // Debug log (helps in development)
     console.log("✅ API Success:", url, data);
 
     return data;
@@ -72,7 +71,7 @@ export function mapModelName(uiModel: string): string {
 
 
 // -------------------------------------------
-// PREDICTION TYPES
+// TYPES
 // -------------------------------------------
 
 export interface BackendPrediction {
@@ -84,6 +83,21 @@ export interface BackendPrediction {
 
   pace_gap?: number;
   missing_requirements?: string[];
+}
+
+// 🔥 NEW: Retrain Response
+export interface RetrainResponse {
+  message: string;
+  metrics: Record<
+    string,
+    {
+      accuracy: number;
+      precision: number;
+      recall: number;
+      f1: number;
+      roc_auc: number;
+    }
+  >;
 }
 
 
@@ -129,8 +143,15 @@ export async function getModelInfo() {
   return await safeFetch(`${BASE_URL}/model-info`);
 }
 
-export async function retrainModel() {
-  return await safeFetch(`${BASE_URL}/retrain`, { method: "POST" });
+
+// -------------------------------------------
+// 🔥 FIXED RETRAIN
+// -------------------------------------------
+
+export async function retrainModel(): Promise<RetrainResponse> {
+  return await safeFetch(`${BASE_URL}/retrain`, {
+    method: "POST",
+  });
 }
 
 
@@ -167,14 +188,14 @@ export interface SemesterProgressionResponse {
 
 
 // -------------------------------------------
-// ANALYTICS CALLS (SAFE + FALLBACKS)
+// ANALYTICS CALLS
 // -------------------------------------------
 
 export async function getCorrelation(): Promise<CorrelationResponse> {
   try {
     return await safeFetch(`${BASE_URL}/correlation`);
   } catch {
-    return { columns: [], matrix: [] }; // prevents crash
+    return { columns: [], matrix: [] };
   }
 }
 
