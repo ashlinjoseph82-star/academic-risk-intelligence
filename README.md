@@ -1,100 +1,147 @@
-# Smart System for Academic Progression Analysis and Graduation Delay Prediction
+🎓 Smart System for Academic Progression Analysis and Graduation Delay Prediction
+📸 Dashboard Preview
+![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_58_17.png>) ![alt text](<Graduation Tracker - Google Chrome 18-03-2026 17_14_47.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_56_36.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_56_42.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_56_51.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_56_58.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_57_07.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_57_57.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_58_02.png>) ![alt text](<Graduation Tracker - Google Chrome 19-03-2026 21_58_07.png>)
+📌 Overview
 
-This project predicts graduation delay risk for university students based on structured, category-wise credit completion within a credit-based academic framework.
+This project is an intelligent academic analytics system designed to predict graduation delay risk based on student credit progression.
 
-The system functions as an academic decision-support tool that analyzes progression patterns and estimates the probability of delayed graduation using traditional machine learning models. It enables early risk identification beyond deterministic eligibility checks.
+Unlike traditional rule-based systems that only check eligibility, this system goes a step further by using machine learning models to estimate risk probability, helping institutions and students take early corrective action.
 
----
+🎯 Objectives
+Determine whether a student is on track for graduation
+Predict the probability of graduation delay
+Classify students into Low / Medium / High risk
+Provide early warning signals
+Enable data-driven academic decisions
+🧠 Key Idea
 
-## Project Objectives
+Instead of just answering:
 
-- Assess whether a student is currently on track for graduation  
-- Estimate the probability of graduation delay  
-- Categorize risk levels (Low, Medium, High)  
-- Provide early warnings based on academic progression patterns  
-- Support students and administrators with data-driven insights  
+❌ “Is the student eligible?”
 
----
+We answer:
 
-## System Overview
+✅ “How likely is the student to face delay?”
 
-The project follows a modular, production-oriented machine learning workflow:
+This shift makes the system far more practical and impactful.
 
-- Synthetic academic data generation  
-- SQLite-based structured data storage  
-- Data preprocessing and model training pipelines  
-- Evaluation and comparison of traditional ML models  
-- Version-controlled model storage and metadata tracking  
-- FastAPI-based prediction and retraining endpoints  
-- React-based interactive dashboard for analysis and predictions  
-- Full frontend–backend integration  
+⚙️ System Architecture
 
-The system emphasizes maintainability, lifecycle management, and structured deployment practices.
+The project follows a structured ML pipeline:
 
----
+📊 Synthetic academic data generation
+🗄️ SQLite database for structured storage
+🔄 Data preprocessing & feature engineering
+🤖 Training multiple ML models
+📈 Model evaluation & comparison
+🧾 Version-controlled model storage
+⚡ FastAPI backend for predictions & retraining
+💻 React dashboard for visualization
+🔗 Full frontend-backend integration
+🤖 Machine Learning Models
 
-## Machine Learning Models
+The system evaluates multiple traditional ML models:
 
-The following traditional models were implemented and evaluated:
+Logistic Regression
+Decision Tree
+Random Forest
+Extra Trees
+Gradient Boosting
+XGBoost
+LightGBM
+CatBoost
+📊 Evaluation Metrics
+Accuracy
+Precision
+Recall
+F1 Score
 
-- Logistic Regression  
-- Decision Tree  
-- Random Forest  
-- Gradient Boosting  
-- XGBoost  
+👉 The best-performing model is automatically selected for predictions.
 
-Models are evaluated using:
+💻 Dashboard Features
+📊 Category-wise credit analysis
+⚠️ Internship & backlog indicators
+📈 Model performance comparison
+🔮 Graduation delay prediction
+🎯 Risk level classification (Low / Medium / High)
+🧾 Model version tracking
+🧩 Project Structure
+Backend/
+│
+├── ml/
+│   ├── train.py
+│   ├── retrain.py
+│   ├── predict.py
+│
+├── models/
+│   ├── v1, v2, v3...
+│
+├── main.py
+├── requirements.txt
 
-- Accuracy  
-- Precision  
-- Recall  
-- F1-score  
-
-The best-performing model is automatically selected for deployment within the prediction pipeline.
-
----
-
-## Dashboard Features
-
-The interactive frontend allows users to:
-
-- View category-wise credit completion summaries  
-- Analyze internship and course failure indicators  
-- Compare model performance metrics  
-- Generate graduation delay predictions  
-- View probability-based risk levels (Low / Medium / High)  
-- Monitor model version information  
-
-The system distinguishes between rule-based eligibility checks and predictive risk estimation.
-
----
-
-## Technology Stack
-
-### Backend
-- Python  
-- FastAPI  
-- Scikit-learn  
-- XGBoost  
-- SQLite  
-
-### Frontend
-- React (Vite + TypeScript)  
-- Tailwind CSS  
-- Recharts  
-
-### Development
-- Git & GitHub  
-- Modular project structure  
-- Version-controlled model lifecycle  
-
----
-
-## Running the Project Locally
-
-### Backend
-
-```bash
+Frontend/
+│
+├── src/
+│   ├── components/
+│   ├── pages/
+│   ├── lib/
+│
+├── public/
+├── package.json
+⚡ Tech Stack
+🔙 Backend
+Python
+FastAPI
+Scikit-learn
+XGBoost, LightGBM, CatBoost
+SQLite
+🎨 Frontend
+React (Vite + TypeScript)
+Tailwind CSS
+Recharts
+🛠️ Tools
+Git & GitHub
+Modular architecture
+Version-controlled ML lifecycle
+🔌 API Endpoints
+Method	Endpoint	Description
+POST	/predict	Predict graduation delay risk
+POST	/retrain	Retrain models with new data
+GET	/models	Fetch model performance summary
+🚀 Running the Project Locally
+🔙 Backend
 cd Backend
 pip install -r requirements.txt
 uvicorn main:app --reload
+💻 Frontend
+cd Frontend
+npm install
+npm run dev
+🧠 Use Cases
+🎓 University academic monitoring systems
+📊 Student performance dashboards
+⚠️ Early warning systems for at-risk students
+🧾 Academic advisory tools
+🔮 Future Improvements
+Integration with real-world university data
+Advanced models (Deep Learning)
+Real-time analytics dashboards
+Cloud deployment (AWS / Render)
+Role-based admin/student access
+🏆 Why This Project Stands Out
+Combines ML + Full Stack Development
+Focuses on real-world academic problems
+Uses multiple model comparison
+Implements model versioning
+Provides actionable insights, not just predictions
+👨‍💻 Author
+
+Ashlin Joseph
+
+⭐ Final Note
+
+This project demonstrates how machine learning can move beyond static rules and become a decision-support system that provides meaningful, real-world impact.
+
+🚀
+
+If you like this project, consider giving it a ⭐ on GitHub!

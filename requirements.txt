@@ -1,11 +1,16 @@
 pandas
 numpy
+
 scikit-learn
 joblib
-
 xgboost
 lightgbm
 catboost
 
 fastapi
 uvicorn
+python-multipart
+pydantic
+
+matplotlib
+seaborn
